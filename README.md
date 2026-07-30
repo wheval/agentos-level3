@@ -2,6 +2,14 @@
 
 > A counter whose step size is chosen privately and proved to sit inside an on-chain policy bound, without the step ever being published.
 
+## Live Demo
+
+**<!-- PASTE VERCEL URL HERE -->** _(deploy with `vercel --prod`, then paste the URL here)_
+
+The web app connects a Midnight wallet, takes a secret step value, generates the
+zero-knowledge proof **in your wallet on your own machine**, and submits the resulting
+transaction to the Preview contract below. The step you type is never sent anywhere.
+
 ## Contract Address
 
 | Network | Address |
@@ -10,6 +18,8 @@
 | Preprod | _not deployed_ |
 
 Deployed in block 205339, transaction `492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70`.
+
+The frontend reads `VITE_CONTRACT_ADDRESS` and defaults to the Preview address above.
 
 ## What This Does
 
@@ -62,13 +72,54 @@ public state. Removing it is a compile error, not a silent leak — which is the
 Note that `total` leaks strictly less than the step itself. After N rounds an observer
 knows the sum, not the individual contributions.
 
+## Privacy Claim
+
+A precise statement of what this does and does not hide.
+
+**What an on-chain observer sees**
+
+- That a transaction called `increment()` on this contract.
+- The new `round` and the new `total` after the call.
+- The declared policy bound `max_step = 10`.
+- A zero-knowledge proof that verifies against the circuit's verifier key.
+
+**What an on-chain observer does not see**
+
+- The witness value itself. `secret_step()` is not a circuit argument, so it never appears
+  in the transaction payload, is never sent to any server, and is never written to the
+  ledger. The only thing derived from it that reaches the chain is the updated `total`.
+- Anything about the caller's choice beyond what the proof asserts.
+
+**What the caller proves without revealing it**
+
+- `1 <= secret_step() <= max_step` — the step obeys the published policy.
+
+**The honest caveat**
+
+`total` is public before and after the call. An observer who watches a single transaction
+in isolation can subtract the two totals and recover that step. So the guarantee here is
+about the **input channel**, not about unlinkability:
+
+- The step is never *transmitted*. It exists only on the caller's machine and inside the
+  proof.
+- Correctness is enforced by the circuit, so the network never has to be trusted with the
+  value in order to check the rule.
+- The UI never displays, logs, or persists it — the input is masked and cleared after each
+  call.
+
+Hiding the delta as well is a contract-level change (a commitment or a shielded balance
+rather than a plaintext running total), not a frontend one. This repo does not claim it.
+
 ## Tech Stack
 
 - **Midnight Network** — Preview / Preprod testnets
 - **Compact** — language version 0.23, compiler 0.31.1, runtime 0.16.0
-- **Midnight.js** — `@midnight-ntwrk/midnight-js` 4.1.x for deployment
+- **Midnight.js** — `@midnight-ntwrk/midnight-js` 4.1.x for deployment and circuit calls
+- **DApp Connector API** — `@midnight-ntwrk/dapp-connector-api` 4.0.1 for browser wallets
+- **React 18 + Vite 5** — frontend, with WASM and top-level-await plugins
+- **Lace wallet** — Midnight browser extension; does the proving on-device
 - **Node.js** v22+
-- **Docker** — runs the local proof server
+- **Docker** — runs the local proof server (deployment only; the browser proves in-wallet)
 - **Vitest** — contract test suite
 
 ## Prerequisites
@@ -76,10 +127,12 @@ knows the sum, not the individual contributions.
 | Requirement | Notes |
 | ----------- | ----- |
 | Node.js v22+ | `node --version` |
-| Docker | Must be running; hosts the proof server |
+| Lace wallet | Midnight browser extension — needed for the web app |
+| Docker | Only needed for the deploy script's proof server |
 | Compact toolchain | Installed via the Midnight `compact` version manager, **not** npm |
-| Proof server | `midnightntwrk/proof-server` on port 6300 |
+| Proof server | `midnightntwrk/proof-server` on port 6300 (deploy only) |
 | Funded testnet wallet | Only needed to deploy, not to build or test |
+
 
 Install the Compact toolchain:
 
@@ -122,6 +175,52 @@ managed/
 `managed/` is committed to this repo so the compiled artifacts can be reviewed without
 installing the toolchain.
 
+## Run Locally
+
+```bash
+git clone https://github.com/wheval/agentos.git
+cd agentos
+npm install
+npm run dev          # http://localhost:5173
+```
+
+That is all that is needed to run the web app — no Docker and no proof server, because
+proving happens inside the Lace extension. Install
+[Lace](https://www.lace.io/) first, or the app will show an install prompt instead of a
+connect button.
+
+To point the app at a different deployment, create a `.env.local`:
+
+```bash
+VITE_CONTRACT_ADDRESS=2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
+VITE_NETWORK_ID=preview
+```
+
+### How the frontend is wired
+
+The browser needs the same proving artifacts the compiler produced, served over HTTP:
+
+```bash
+npm run sync:zk   # managed/{keys,zkir} -> public/zk/counter/
+```
+
+`FetchZkConfigProvider` then loads `/zk/counter/keys/increment.prover`,
+`.../increment.verifier` and `/zk/counter/zkir/increment.bzkir`. Those files are committed,
+so a fresh clone builds without the Compact toolchain installed. Re-run `sync:zk` after any
+`npm run compile`.
+
+| File | Role |
+| ---- | ---- |
+| `src/lib/config.ts` | Contract address, network id, ZK asset path |
+| `src/lib/wallet.ts` | Discovers wallets on `window.midnight`, normalises connector errors |
+| `src/lib/providers.ts` | Bridges the wallet's connector API to Midnight.js providers |
+| `src/hooks/useMidnight.ts` | Connect / disconnect / call state machine |
+| `src/components/WalletConnect.tsx` | Connect UI, address display, error states |
+| `src/components/CircuitCall.tsx` | Secret input, proving state, transaction result |
+
+Private state is held in memory only. Nothing about the step is persisted, and a page
+reload discards it.
+
 ## Run Tests
 
 ```bash
@@ -140,6 +239,10 @@ npm run typecheck     # TypeScript
 | Never writes the private step into the public ledger | Privacy guarantee |
 | Produces identical public state for different private step sequences | Privacy guarantee |
 
+The frontend is covered by `npm run build`, which typechecks the whole project and then
+produces a production bundle. CI runs it on every push.
+
+
 ## Deploy
 
 ```bash
@@ -152,6 +255,31 @@ registers NIGHT UTXOs for DUST generation, then deploys and prints the contract 
 
 Faucets: [Preview](https://faucet.preview.midnight.network/) ·
 [Preprod](https://faucet.preprod.midnight.network/)
+
+## Deploy the Frontend
+
+The repo ships a `vercel.json`. From a clean checkout:
+
+```bash
+npm i -g vercel
+vercel login
+vercel link          # first time only
+vercel --prod
+```
+
+Then paste the resulting URL into the **Live Demo** section above.
+
+The config matters in one specific way: the SPA rewrite deliberately excludes `/zk/*` and
+`/assets/*`.
+
+```json
+{ "source": "/((?!assets/|zk/).*)", "destination": "/index.html" }
+```
+
+Without that exclusion, a request for `increment.prover` would fall through to
+`index.html`, and `FetchZkConfigProvider` would reject the `text/html` response instead of
+loading the proving key. Any other host works too, as long as the ZK artifacts are served
+as real files.
 
 ## Verify the Deployment
 
@@ -177,13 +305,26 @@ Verified on-chain.
 ```
 agentos/
 ├── contracts/counter.compact   the Compact contract
+├── contracts/witnesses.ts      witness implementation shared by tests, deploy and web
 ├── managed/                    compiler output (committed)
+├── public/zk/counter/          proving artifacts served to the browser
 ├── scripts/compile.sh          compile wrapper
 ├── scripts/deploy.ts           testnet deployment
 ├── scripts/verify.sh           reads the deployment back from the indexer
-├── src/                        frontend (Level 2)
+├── scripts/sync-zk-assets.sh   copies managed/ artifacts into public/
+├── src/
+│   ├── components/
+│   │   ├── WalletConnect.tsx   wallet connect / disconnect UI
+│   │   └── CircuitCall.tsx     circuit call button and result display
+│   ├── hooks/useMidnight.ts    Midnight.js SDK hook
+│   ├── lib/                    config, wallet discovery, provider wiring
+│   ├── shims/                  browser stand-ins for two Node-only imports
+│   ├── App.tsx
+│   └── main.tsx
 ├── tests/counter.test.ts       contract test suite
 ├── .github/workflows/ci.yml    CI
+├── vercel.json                 frontend hosting config
+├── vite.config.ts
 └── README.md
 ```
 
@@ -222,6 +363,19 @@ marks the exact, auditable point where private data is permitted to affect publi
 Swap the counter for a payment and `max_step` for a spending limit and you have the Finance
 Agent: an agent that can prove it stayed under budget without publishing what it spent.
 That is the primitive the rest of AgentOS is built on.
+
+## Demo Video
+
+**<!-- PASTE VIDEO LINK HERE -->**
+
+What the recording shows, in order:
+
+1. Connecting Lace — the wallet address appears on screen.
+2. Entering a secret step and pressing **Increment counter** — the button switches to
+   *Generating proof…* while the wallet proves locally.
+3. The transaction id and the updated public `round` / `total` after submission.
+4. The step field stays masked and empties itself — the value never appears in the UI, the
+   console, or the transaction.
 
 ## Screenshots
 
