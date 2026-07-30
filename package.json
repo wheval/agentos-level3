@@ -12,7 +12,7 @@
     "test:artifacts": "./tests/contract-artifacts.test.sh",
     "typecheck": "tsc --noEmit",
     "verify": "./scripts/verify.sh",
-    "deploy": "tsx scripts/deploy.ts",
+    "deploy": "NODE_OPTIONS=--max-old-space-size=12288 tsx scripts/deploy.ts",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",

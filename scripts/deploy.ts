@@ -5,6 +5,11 @@
 //
 // Requires a local proof server on http://127.0.0.1:6300 and a wallet funded
 // from the faucet for the chosen network.
+//
+// Syncing the wallet holds the whole scanned history in memory, which overruns
+// Node's default ~4 GB heap on preprod (fatal "Ineffective mark-compacts near
+// heap limit"). The npm script raises the limit; run it via `npm run deploy`
+// rather than invoking tsx directly.
 import { WebSocket } from 'ws';
 
 // The wallet SDK logs a `Wallet.Sync` error object on every poll, which buries

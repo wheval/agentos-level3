@@ -259,8 +259,20 @@ npm run deploy -- --network preview   # or --network preprod
 The script derives the wallet, prints the unshielded address, waits for faucet funds,
 registers NIGHT UTXOs for DUST generation, then deploys and prints the contract address.
 
+Syncing the wallet holds the scanned history in memory. On preprod that overruns Node's
+default ~4 GB heap and aborts with `Ineffective mark-compacts near heap limit`, so the
+`deploy` script raises the limit to 12 GB. Invoke it through `npm run deploy` rather than
+calling `tsx scripts/deploy.ts` directly, or you will hit that crash.
+
 Faucets: [Preview](https://faucet.preview.midnight.network/) ·
 [Preprod](https://faucet.preprod.midnight.network/)
+
+Either faucet can be down independently of the chain itself. Check before deploying:
+
+```bash
+curl -s https://faucet.preprod.midnight.network/api/health
+# {"status":"SERVING"} means it will dispense
+```
 
 ## Deploy the Frontend
 
