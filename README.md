@@ -2,6 +2,12 @@
 
 > A counter whose step size is chosen privately and proved to sit inside an on-chain policy bound, without the step ever being published.
 
+This is the **Level 2** repo of the Midnight Builder Challenge: the Level 1 contract plus a
+web frontend that connects a wallet and calls the circuit with proving done in the browser.
+The contract, tests and deployment from Level 1 live here too, and unchanged, so this repo
+stands on its own. Level 1 is submitted separately from
+[`wheval/agentos`](https://github.com/wheval/agentos).
+
 ## Live Demo
 
 **<!-- PASTE VERCEL URL HERE -->** _(deploy with `vercel --prod`, then paste the URL here)_
@@ -154,8 +160,8 @@ docker run -d --name midnight-proof-server -p 6300:6300 \
 ## Setup
 
 ```bash
-git clone https://github.com/wheval/agentos.git
-cd agentos
+git clone https://github.com/wheval/agentos-level2.git
+cd agentos-level2
 npm install
 npm run compile
 ```
@@ -178,8 +184,8 @@ installing the toolchain.
 ## Run Locally
 
 ```bash
-git clone https://github.com/wheval/agentos.git
-cd agentos
+git clone https://github.com/wheval/agentos-level2.git
+cd agentos-level2
 npm install
 npm run dev          # http://localhost:5173
 ```
