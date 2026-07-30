@@ -30,3 +30,6 @@ jobs:
 
       - name: Verify committed artifacts match the contract source
         run: npm run test:artifacts
+
+      - name: Build frontend
+        run: npm run build
