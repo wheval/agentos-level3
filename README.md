@@ -21,11 +21,22 @@ transaction to the Preview contract below. The step you type is never sent anywh
 | Network | Address |
 | ------- | ------- |
 | Preview | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` |
-| Preprod | _not deployed_ |
+| Preprod | _not deployed — the Preprod faucet was down_ |
 
 Deployed in block 205339, transaction `492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70`.
 
+Verify it yourself against the public indexer — no local setup required:
+
+```bash
+npm run verify preview 2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
+```
+
 The frontend reads `VITE_CONTRACT_ADDRESS` and defaults to the Preview address above.
+
+This app runs on Preview because the Preprod faucet was not dispensing test tokens, and a
+deploy cannot proceed without a funded wallet. Nothing here is Preview-specific —
+`scripts/deploy.ts` already accepts `--network preprod`, so moving over is one command plus
+updating `VITE_CONTRACT_ADDRESS` and `VITE_NETWORK_ID`.
 
 ## What This Does
 
@@ -267,11 +278,11 @@ calling `tsx scripts/deploy.ts` directly, or you will hit that crash.
 Faucets: [Preview](https://faucet.preview.midnight.network/) ·
 [Preprod](https://faucet.preprod.midnight.network/)
 
-Either faucet can be down independently of the chain itself. Check before deploying:
+A faucet can be down independently of the chain itself, and the UI only shows a generic
+"Services are currently unavailable". Check its health endpoint to see the real reason:
 
 ```bash
 curl -s https://faucet.preprod.midnight.network/api/health
-# {"status":"SERVING"} means it will dispense
 ```
 
 ## Deploy the Frontend
