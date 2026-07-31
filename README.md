@@ -19,9 +19,9 @@ transaction to the Preview contract below. The step you type is never sent anywh
 ## Contract Address
 
 | Network | Address |
-| ------- | ------- |
+| --- | --- |
 | Preview | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` |
-| Preprod | _not deployed — the Preprod faucet was down_ |
+| Preprod | *not deployed — the Preprod faucet was down* |
 
 Deployed in block 205339, transaction `492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70`.
 
@@ -58,7 +58,7 @@ private while the outcome stays auditable.
 **PUBLIC — written to the ledger, readable by anyone**
 
 | Field | Meaning |
-| ----- | ------- |
+| --- | --- |
 | `round` | How many times `increment()` has been accepted |
 | `total` | Running total of every accepted step |
 | `max_step` | Largest step the contract accepts (write-once, set at deploy) |
@@ -142,7 +142,7 @@ rather than a plaintext running total), not a frontend one. This repo does not c
 ## Prerequisites
 
 | Requirement | Notes |
-| ----------- | ----- |
+| --- | --- |
 | Node.js v22+ | `node --version` |
 | Lace wallet | Midnight browser extension, holding tNIGHT **registered for DUST generation** — DUST pays transaction fees |
 | Docker | Runs the proof server |
@@ -234,7 +234,7 @@ so a fresh clone builds without the Compact toolchain installed. Re-run `sync:zk
 `npm run compile`.
 
 | File | Role |
-| ---- | ---- |
+| --- | --- |
 | `src/lib/config.ts` | Contract address, network id, ZK asset path |
 | `src/lib/wallet.ts` | Discovers wallets on `window.midnight`, normalises connector errors |
 | `src/lib/providers.ts` | Bridges the wallet's connector API to Midnight.js providers |
@@ -256,7 +256,7 @@ npm run typecheck     # TypeScript
 `npm test` runs five tests against the compiled circuit through the Compact simulator:
 
 | Test | Covers |
-| ---- | ------ |
+| --- | --- |
 | Initialises public ledger state from the constructor | Initial state |
 | Advances public state by the private step on each increment | Circuit logic + state transitions |
 | Rejects steps outside the publicly declared policy bound | Policy enforcement |
@@ -278,7 +278,7 @@ The script derives the wallet, prints the unshielded address, waits for faucet f
 registers NIGHT UTXOs for DUST generation, then deploys and prints the contract address.
 
 Syncing the wallet holds the scanned history in memory. On preprod that overruns Node's
-default ~4 GB heap and aborts with `Ineffective mark-compacts near heap limit`, so the
+default \~4 GB heap and aborts with `Ineffective mark-compacts near heap limit`, so the
 `deploy` script raises the limit to 12 GB. Invoke it through `npm run deploy` rather than
 calling `tsx scripts/deploy.ts` directly, or you will hit that crash.
 
@@ -402,21 +402,12 @@ That is the primitive the rest of AgentOS is built on.
 
 ## Demo Video
 
-**<!-- PASTE VIDEO LINK HERE -->**
-
-Keep the recording under two minutes and show, in order:
-
-1. Connecting Lace — the wallet address appears on screen.
-2. Entering a secret step and pressing **Increment counter** — the button switches to
-   *Generating proof…* while the wallet proves locally.
-3. The transaction id and the updated public `round` / `total` after submission.
-4. The step field stays masked and empties itself — the value never appears in the UI, the
-   console, or the transaction.
+[Watch the Level 2 demo on YouTube](https://youtu.be/sLYBi4SMj_U)
 
 ## Level 2 Final Checklist
 
 | Requirement | Status |
-| ----------- | ------ |
+| --- | --- |
 | Lace wallet connect and disconnect working | ✓ |
 | Circuit called from the frontend and proof generated locally | ✓ on Preview |
 | Private input never shown in the UI | ✓ |
@@ -426,7 +417,7 @@ Keep the recording under two minutes and show, in order:
 | File structure matches the specification | ✓ |
 | Minimum 8 meaningful commits | ✓ 18+ Level 2 commits |
 | Preprod contract address and live wiring | ✗ Preprod faucet was down; current deployment uses Preview |
-| Demo video link | ✗ Add after recording |
+| Demo video link | ✓ |
 
 ## Screenshots
 
