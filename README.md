@@ -31,6 +31,11 @@ The frontend discovers Lace or 1AM, checks network and DUST readiness, generates
 through the wallet, submits the transaction, and refreshes the ledger state. Wallet rejection,
 network mismatch, fee, proving, submission, indexer, and retry states are surfaced in the UI.
 
+This is the smallest working primitive behind AgentOS, a private control plane for autonomous
+AI operations. `max_step` represents a published policy boundary, `secret_step()` represents
+an agent action, and the proof shows that the action complied without transmitting its private
+input. The same pattern can govern payments, deployments, data access, and cross-tool workflows.
+
 ## Privacy Model
 
 - **PUBLIC:** `round`, `total`, and the sealed `max_step` policy are stored on the ledger and
@@ -151,10 +156,11 @@ The badge directly below the title reports this workflow's `main` branch status.
 
 ## Product Proposal
 
-The selected challenge idea is **Private Allowlist Access**: proving that an AI agent belongs
-to an organization's resource allowlist without revealing the agent's identity. The complete
-selective-disclosure design, data model, and Level 6 feasibility plan are in
-[PROPOSAL.md](PROPOSAL.md).
+**AgentOS** is a model-agnostic private control plane that gives enterprise AI agents scoped
+authority, secure secrets, policy enforcement, and verifiable audit evidence across finance,
+engineering, HR, cloud, and operations. Unlike a payment-only agent wallet, payments are one
+connector among many. The full product, selective-disclosure data model, and Level 6 roadmap
+are in [PROPOSAL.md](PROPOSAL.md).
 
 ## Deployment and Verification
 

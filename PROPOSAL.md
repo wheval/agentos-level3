@@ -2,62 +2,104 @@
 
 ## What is the product, and who uses it?
 
-**Chosen Level 3 idea: Private Allowlist Access.**
+**AgentOS is the private control plane for autonomous AI operations.**
 
-AgentOS Private Access lets an organization authorize AI agents for a protected action without
-publishing which agent is on the allowlist. An administrator creates a policy for a resource,
-such as approving invoices, reading a private workspace, or invoking a production tool. Each
-approved agent receives a private membership credential. When the agent requests access, it
-proves in zero knowledge that its credential belongs to the current allowlist.
+Companies want AI agents to do real work: pay invoices, review code, deploy software, manage
+cloud resources, handle employee operations, and coordinate work across SaaS tools. The
+blocker is not model capability; it is control. Giving an agent unrestricted credentials and
+trusting a mutable application log is not an acceptable security model.
 
-The primary users are enterprise AI teams:
+AgentOS gives each agent an identity, a job description, scoped permissions, private memory,
+secure access to secrets, and an accountable manager. A task is decomposed into actions, and
+each action must satisfy the organization's policy before the relevant connector can execute
+it. Authority can be limited by resource, environment, role, amount, time window, counterparty,
+or required human approval.
 
-- Security administrators define resources and maintain their allowlists.
-- Agent operators hold credentials locally and request access on an agent's behalf.
-- Auditors verify that every accepted action satisfied the published policy without receiving
-  the agent's identity or credential.
+Payment-focused agent wallets demonstrate the demand for scoped, revocable authority over
+money. AgentOS expands that control-plane model to the rest of an organization's operations:
+
+- A **Finance Agent** can reconcile invoices and prepare payments but cannot exceed a private
+  spending limit or pay an unapproved counterparty.
+- A **Developer Agent** can open pull requests and deploy staging but cannot access production
+  or reveal repository secrets.
+- An **HR Agent** can prepare onboarding tasks while proving eligibility without exposing
+  employee records to unrelated agents.
+- An **Operations Agent** can coordinate Slack, Notion, Linear, cloud, and vendor workflows
+  within a bounded set of permissions.
+
+The users are companies adopting AI agents, the security and platform teams that govern them,
+operators who approve sensitive work, and auditors who need evidence that policy was followed.
+AgentOS is model-agnostic and connector-agnostic: payment is one operational surface, not the
+entire product.
+
+The current `PrivateCounter` dApp is the smallest working version of the policy engine. Its
+public `max_step` is a policy boundary, its private `secret_step` is an agent action, and its
+zero-knowledge proof demonstrates that the action stayed within policy without sending the
+private input to the network.
 
 ## Why Midnight specifically?
 
-A transparent chain can make an allowlist tamper-evident, but checking it normally reveals the
-member's wallet or identifier. That creates a permanent map of which internal agent can access
-which business system.
+Agent operations combine two requirements that are difficult to satisfy together:
 
-Midnight separates the public policy from the private proof material. The contract can publish
-an allowlist Merkle root and accept a proof built from a private credential and Merkle path.
-The network learns that the requester is a valid member of the current allowlist, but not which
-member proved it. Only the minimum audit result is disclosed. A resource-scoped nullifier can
-be published when replay prevention is needed without exposing the underlying credential.
+1. The organization needs durable, independently verifiable proof that an agent followed its
+   policy.
+2. The policy evaluation must not expose the sensitive data used to make that decision.
 
-This selective disclosure is the product requirement, not an optimization: organizations need
-verifiable access control without turning their internal permission graph into public data.
+A transparent chain can make an audit record immutable, but it would expose the organization's
+permission graph, spending limits, transaction amounts, customer data, internal resource names,
+and agent activity. A conventional private database can hide those details, but the same party
+that operates it can alter policies or logs after the fact.
+
+Midnight provides the missing separation. Compact circuits can enforce public policy
+commitments against private witnesses, while zero-knowledge proofs reveal only the approved
+result. An agent can prove that a payment is below its limit, a deployment targets an allowed
+environment, or an employee satisfies an eligibility rule without publishing the amount,
+environment credential, or employee record. `disclose()` makes every movement from private
+input to public state explicit and reviewable.
+
+The resulting audit trail records that a valid policy authorized an action, not all of the
+organization's underlying secrets. Different stakeholders can receive different disclosures:
+the public can verify the proof, an internal auditor can receive an action receipt, and the
+operator can retain the full private context. That selective disclosure is the reason AgentOS
+belongs on Midnight rather than a transparent chain.
 
 ## Data Model
 
 | Data Point | Type | Disclosed To |
 |------------------|----------------|--------------|
-| Policy ID and resource label | Public ledger | Everyone |
-| Current allowlist Merkle root | Public ledger | Everyone |
-| Accepted-access counter | Public ledger | Everyone |
-| Agent membership credential | Private witness | Credential holder only |
-| Agent secret key | Private witness | Credential holder only |
-| Merkle membership path | Private witness | Prover only |
-| Resource-scoped nullifier | Selectively disclosed ledger value | Everyone, only when replay protection is enabled |
-| Membership proof result | Zero-knowledge proof | Verifiers learn only that membership is valid |
+| Agent identity commitment | Public ledger | Everyone sees the commitment, not the agent identity |
+| Policy commitment and version | Public ledger | Everyone |
+| Workflow/action commitment | Public ledger | Everyone sees a hash, not the action details |
+| Policy proof result | Zero-knowledge proof | Everyone learns only that the action satisfied policy |
+| Resource-scoped nullifier | Public ledger | Everyone; prevents replay without revealing the secret |
+| Action status and timestamp | Public ledger | Everyone, when the workflow requires a public audit event |
+| Agent identity and role | Private witness | Agent operator and authorized organization systems |
+| Action details and parameters | Private witness | The executing agent and authorized approvers |
+| Spending amount, limit, or eligibility value | Private witness | The holder; only the constraint result is proved |
+| API keys, wallet keys, and connector tokens | Encrypted off-chain secret | Authorized connector only; never written on-chain |
+| Private memory and customer context | Encrypted off-chain state | Authorized agent workflow only |
+| Detailed execution receipt | Selectively disclosed record | Operator, approver, and designated auditors |
+| Aggregated compliance metrics | Selectively disclosed output | Organization or regulator, according to policy |
 
 ## Mainnet Feasibility
 
-This is realistic for a Level 6 Mainnet candidate if the first release stays focused on
-membership proof and policy rotation rather than becoming a full enterprise identity system.
+AgentOS is feasible as a focused Mainnet product by Level 6 if it starts as a policy and audit
+layer rather than attempting to replace every identity provider, wallet, and SaaS platform.
+Existing tools remain the systems of execution; AgentOS controls what agents may ask them to do.
 
-- **Level 4:** replace the counter primitive with a Merkle-root allowlist contract, membership
-  witness, domain-separated credential commitment, and resource-scoped nullifier.
-- **Level 5:** add administrator policy rotation, revocation tests, multi-resource UI, recovery
-  guidance, and an external security review of witness and nullifier handling.
-- **Level 6:** run a small pilot with non-financial agent permissions, publish an operational
-  threat model, complete testnet load and failure testing, and deploy only after the Compact
-  and Midnight.js versions are pinned and audited.
+- **Level 4 — Policy engine:** evolve `PrivateCounter` into an Agent Policy contract with
+  domain-separated agent commitments, versioned policies, private action witnesses, replay
+  protection, and selectively disclosed action receipts. Implement one end-to-end operational
+  workflow, likely a capped payment or staging deployment.
+- **Level 5 — Operational control plane:** add agent registration, human approval thresholds,
+  revocation, policy rotation, encrypted private state, and a small connector SDK. Demonstrate
+  coordinated Finance, Developer, and Operations agents in a test environment.
+- **Level 6 — Mainnet candidate:** narrow the first production release to low-risk, bounded
+  actions; complete threat modeling and external review of circuits, witnesses, nullifiers,
+  secret handling, and recovery; run failure and load tests; then pilot with a small number of
+  organizations before expanding connector scope.
 
-Mainnet scope would initially prove access eligibility and record a minimal audit event. Secret
-distribution, enterprise directory synchronization, and high-value financial authorization
-would remain off-chain integrations until separately reviewed.
+The first Mainnet release would not custody arbitrary user secrets or grant agents unrestricted
+production access. It would prove policy compliance for explicitly bounded actions and emit
+minimal audit evidence. Higher-risk financial custody, autonomous production changes, and
+regulated HR decisions would remain approval-gated until separately audited.
