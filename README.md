@@ -230,7 +230,7 @@ required before submission.
 |-------------|--------|
 | 3+ tests passing | ✓ Six tests pass locally |
 | CI/CD pipeline configured for push to `main` and pull requests | ✓ |
-| CI/CD pipeline passing on `main` | ✗ Pending the first Level 3 workflow run |
+| CI/CD pipeline passing on `main` | ✓ Verified by GitHub Actions |
 | CI badge directly below README title | ✓ |
 | Contract address in README | ✓ Verified Preview address |
 | Verified Preprod contract address in README | ✗ No verified address supplied |
