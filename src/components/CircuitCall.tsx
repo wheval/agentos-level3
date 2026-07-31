@@ -5,7 +5,16 @@ import { CONTRACT_ADDRESS } from '../lib/config';
 
 type Props = Pick<
   ReturnType<typeof useMidnight>,
-  'walletStatus' | 'networkMismatch' | 'callStatus' | 'callError' | 'result' | 'callIncrement' | 'ledger' | 'ledgerError'
+  | 'walletStatus'
+  | 'networkMismatch'
+  | 'callStatus'
+  | 'callError'
+  | 'result'
+  | 'callIncrement'
+  | 'ledger'
+  | 'ledgerStatus'
+  | 'ledgerError'
+  | 'refreshLedger'
 >;
 
 const MAX_STEP = 10n;
@@ -18,7 +27,9 @@ export function CircuitCall({
   result,
   callIncrement,
   ledger,
+  ledgerStatus,
   ledgerError,
+  refreshLedger,
 }: Props) {
   // Held only long enough to build the proof. It is never rendered back to the
   // screen, never written to storage, and never included in the transaction.
@@ -45,8 +56,18 @@ export function CircuitCall({
       return;
     }
 
-    void callIncrement(parsed).finally(() => setStep(''));
+    setStep('');
+    void callIncrement(parsed);
   };
+
+  const ledgerLabel =
+    ledgerStatus === 'loading'
+      ? 'Syncing'
+      : ledgerStatus === 'error'
+        ? 'Unavailable'
+        : ledgerStatus === 'ready'
+          ? 'Live'
+          : 'Waiting';
 
   return (
     <section className="card">
@@ -63,8 +84,11 @@ export function CircuitCall({
           <span>Your secret step</span>
           <input
             type="password"
+            name="secret-step"
             inputMode="numeric"
             autoComplete="off"
+            pattern="[0-9]*"
+            aria-describedby="privacy-explanation"
             placeholder={`1 – ${MAX_STEP}`}
             value={step}
             onChange={(event) => setStep(event.target.value)}
@@ -72,24 +96,35 @@ export function CircuitCall({
           />
         </label>
 
-        <p className="privacy-note">
+        <p className="privacy-note" id="privacy-explanation">
           <span className="privacy-icon" aria-hidden="true">✦</span>
           <span><strong>Proved without revealing your input.</strong> The proof only attests that your step is between 1 and {String(MAX_STEP)}.</span>
         </p>
 
-        {validation && <p className="alert alert-error">{validation}</p>}
+        {validation && <p className="alert alert-error" role="alert">{validation}</p>}
 
-        <button type="submit" className="btn btn-primary" disabled={!ready || busy || step.trim() === ''}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={!ready || busy || step.trim() === ''}
+          aria-busy={busy}
+        >
+          {busy && <span className="spinner spinner-on-button" aria-hidden="true" />}
           {callStatus === 'proving' && 'Generating proof…'}
           {callStatus === 'submitting' && 'Submitting…'}
           {!busy && 'Increment counter'}
         </button>
 
         {!ready && walletStatus !== 'connected' && <p className="muted">Connect a wallet to enable this.</p>}
+        {networkMismatch && (
+          <p className="alert alert-warn" role="alert">
+            Switch your wallet to the contract network before proving.
+          </p>
+        )}
       </form>
 
       {busy && (
-        <div className="progress">
+        <div className="progress" role="status" aria-live="polite">
           <span className="spinner" aria-hidden="true" />
           <span>
             {callStatus === 'proving'
@@ -117,15 +152,29 @@ export function CircuitCall({
         </div>
       )}
 
-      {callError && <p className="alert alert-error">{callError}</p>}
+      {callError && <p className="alert alert-error" role="alert">{callError}</p>}
 
       <div className="ledger">
         <div className="ledger-head">
           <h3>Public state</h3>
-          <span className="live-indicator"><i aria-hidden="true" /> Live</span>
+          <span className={`live-indicator live-${ledgerStatus}`}>
+            <i aria-hidden="true" /> {ledgerLabel}
+          </span>
         </div>
-        {ledgerError && <p className="alert alert-error">{ledgerError}</p>}
-        {ledger ? (
+        {ledgerError && (
+          <div className="alert alert-error" role="alert">
+            <p>{ledgerError}</p>
+            <button type="button" className="text-button" onClick={() => void refreshLedger()}>
+              Retry public state
+            </button>
+          </div>
+        )}
+        {ledgerStatus === 'loading' ? (
+          <div className="ledger-loading" role="status">
+            <span className="spinner" aria-hidden="true" />
+            <span>Reading the latest public state…</span>
+          </div>
+        ) : ledger ? (
           <dl className="stats">
             <div>
               <dt>Round</dt>
@@ -140,9 +189,9 @@ export function CircuitCall({
               <dd className="mono">{String(ledger.max_step)}</dd>
             </div>
           </dl>
-        ) : (
+        ) : !ledgerError ? (
           <p className="muted">Connect a wallet to read the on-chain counter.</p>
-        )}
+        ) : null}
       </div>
     </section>
   );

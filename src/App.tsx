@@ -50,7 +50,9 @@ export default function App() {
           result={midnight.result}
           callIncrement={midnight.callIncrement}
           ledger={midnight.ledger}
+          ledgerStatus={midnight.ledgerStatus}
           ledgerError={midnight.ledgerError}
+          refreshLedger={midnight.refreshLedger}
         />
       </div>
 
