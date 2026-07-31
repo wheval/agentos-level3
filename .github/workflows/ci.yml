@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -16,20 +17,34 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Pinned so the lockfile is always resolved by the same npm that generated
-      # it. npm 11 prunes optional peer deps (smoldot) that npm 10 requires.
-      - run: npm install -g npm@10.9.2
+      - name: Install dependencies with npm 10.9.2
+        run: npx --yes npm@10.9.2 ci --no-audit --no-fund
 
-      - run: npm ci
+      - name: Install Compact 0.31.1
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/compact" update 0.31.1
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Compile Compact contract
+        run: |
+          compact compile contracts/counter.compact managed
+          npx --yes npm@10.9.2 run sync:zk
+
+      - name: Verify compiled artifacts are committed
+        run: |
+          npx --yes npm@10.9.2 run test:artifacts
+          git diff --exit-code -- managed public/zk
 
       - name: Contract tests
-        run: npm test
+        run: npx --yes npm@10.9.2 test
 
-      - name: Verify committed artifacts match the contract source
-        run: npm run test:artifacts
+      - name: Verify Level 3 file structure
+        run: npx --yes npm@10.9.2 run check:structure
+
+      - name: Typecheck
+        run: npx --yes npm@10.9.2 run typecheck
 
       - name: Build frontend
-        run: npm run build
+        run: npx --yes npm@10.9.2 run build
