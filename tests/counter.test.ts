@@ -45,8 +45,14 @@ class CounterSimulator {
     };
   }
 
+  invokeIncrement(): [] {
+    const invocation = this.contract.impureCircuits.increment(this.circuitContext);
+    this.circuitContext = invocation.context;
+    return invocation.result;
+  }
+
   increment(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.increment(this.circuitContext).context;
+    this.invokeIncrement();
     return this.getLedger();
   }
 }
@@ -91,6 +97,14 @@ describe('PrivateCounter contract', () => {
 
     // The witness value stays in private state, untouched by the circuit.
     expect(counter.getPrivateState()).toEqual({ secretStep: 7n });
+  });
+
+  it('returns no private circuit output', () => {
+    const counter = new CounterSimulator(9n);
+
+    expect(counter.invokeIncrement()).toEqual([]);
+    expect('secretStep' in counter.getLedger()).toBe(false);
+    expect(counter.getPrivateState()).toEqual({ secretStep: 9n });
   });
 
   it('produces identical public state for different private step sequences', () => {
