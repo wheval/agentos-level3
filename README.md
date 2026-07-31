@@ -157,9 +157,10 @@ The badge directly below the title reports this workflow's `main` branch status.
 ## Product Proposal
 
 **AgentOS** is a model-agnostic private control plane that gives enterprise AI agents scoped
-authority, secure secrets, policy enforcement, and verifiable audit evidence across finance,
-engineering, HR, cloud, and operations. Unlike a payment-only agent wallet, payments are one
-connector among many. The full product, selective-disclosure data model, and Level 6 roadmap
+authority, secure secrets, policy enforcement, and verifiable audit evidence. It starts with a
+Credential and Payment Vault that gives agents short-lived, policy-bound capabilities instead
+of raw keys, then extends the same controls to engineering, HR, cloud, SaaS, and governed
+agent-to-agent handoffs. The full product, selective-disclosure data model, and Level 6 roadmap
 are in [PROPOSAL.md](PROPOSAL.md).
 
 ## Deployment and Verification
