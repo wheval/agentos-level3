@@ -4,6 +4,7 @@ type Props = Pick<
   ReturnType<typeof useMidnight>,
   | 'wallets'
   | 'walletStatus'
+  | 'connectingWalletKey'
   | 'walletName'
   | 'address'
   | 'networkId'
@@ -19,6 +20,7 @@ const shorten = (value: string): string => (value.length > 24 ? `${value.slice(0
 export function WalletConnect({
   wallets,
   walletStatus,
+  connectingWalletKey,
   walletName,
   address,
   networkId,
@@ -35,7 +37,10 @@ export function WalletConnect({
   return (
     <section className="card">
       <header className="card-head">
-        <h2>Wallet</h2>
+        <div>
+          <span className="section-kicker">Step 01</span>
+          <h2>Choose your wallet</h2>
+        </div>
         <span className={`badge ${connected ? 'badge-on' : 'badge-off'}`}>
           {connected ? 'Connected' : 'Not connected'}
         </span>
@@ -76,32 +81,43 @@ export function WalletConnect({
           <p className="muted">
             {noWallet
               ? 'No Midnight wallet found in this browser.'
-              : 'Connect a Midnight wallet to call the contract.'}
+              : 'Select the wallet you want to use for proving and submitting.'}
           </p>
 
           {noWallet ? (
-            <a
-              className="btn btn-primary"
-              href="https://www.lace.io/"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              Install Lace
-            </a>
+            <div className="wallet-list">
+              <a className="btn btn-primary" href="https://www.lace.io/" target="_blank" rel="noreferrer noopener">
+                Install Lace
+              </a>
+              <a className="btn btn-secondary" href="https://1am.xyz/" target="_blank" rel="noreferrer noopener">
+                Install 1AM
+              </a>
+            </div>
           ) : (
             <div className="wallet-list">
-              {wallets.map((wallet) => (
-                <button
-                  key={wallet.key}
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => void connect(wallet.key)}
-                  disabled={connecting}
-                >
-                  {wallet.icon && <img src={wallet.icon} alt="" width={18} height={18} />}
-                  {connecting ? 'Waiting for wallet…' : `Connect ${wallet.name}`}
-                </button>
-              ))}
+              {wallets.map((wallet) => {
+                const isThisWalletConnecting = connectingWalletKey === wallet.key;
+
+                return (
+                  <button
+                    key={wallet.key}
+                    type="button"
+                    className="wallet-option"
+                    onClick={() => void connect(wallet.key)}
+                    disabled={connecting}
+                    aria-busy={isThisWalletConnecting}
+                  >
+                    <span className="wallet-icon">
+                      {wallet.icon ? <img src={wallet.icon} alt="" width={24} height={24} /> : wallet.name.slice(0, 1)}
+                    </span>
+                    <span className="wallet-copy">
+                      <strong>{wallet.name}</strong>
+                      <small>{isThisWalletConnecting ? 'Waiting for approval…' : 'Connect extension'}</small>
+                    </span>
+                    {isThisWalletConnecting ? <span className="spinner" aria-hidden="true" /> : <span aria-hidden="true">→</span>}
+                  </button>
+                );
+              })}
             </div>
           )}
         </>

@@ -28,6 +28,7 @@ export type CallResult = {
 export function useMidnight() {
   const [wallets, setWallets] = useState<DiscoveredWallet[]>([]);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>('detecting');
+  const [connectingWalletKey, setConnectingWalletKey] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [networkId, setNetworkId] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function useMidnight() {
   const [ledgerError, setLedgerError] = useState<string | null>(null);
 
   const connectionRef = useRef<ConnectedAPI | null>(null);
+  const connectInFlightRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,8 +59,11 @@ export function useMidnight() {
   const networkMismatch = walletStatus === 'connected' && networkId !== null && networkId !== EXPECTED_NETWORK_ID;
 
   const connect = useCallback(async (walletKey?: string) => {
+    if (connectInFlightRef.current) return;
+    connectInFlightRef.current = true;
     setWalletError(null);
     setWalletStatus('connecting');
+    setConnectingWalletKey(walletKey ?? null);
 
     try {
       const available = await waitForWallets();
@@ -66,8 +71,9 @@ export function useMidnight() {
 
       const target = walletKey ? available.find((w) => w.key === walletKey) : available[0];
       if (!target) {
-        throw new Error('No Midnight wallet detected. Install the Lace extension, then reload this page.');
+        throw new Error('No Midnight wallet detected. Install Lace or 1AM, then reload this page.');
       }
+      setConnectingWalletKey(target.key);
 
       const connected = await target.api.connect(EXPECTED_NETWORK_ID);
       const configuration = await connected.getConfiguration();
@@ -82,11 +88,16 @@ export function useMidnight() {
       connectionRef.current = null;
       setWalletError(describeWalletError(error));
       setWalletStatus('error');
+    } finally {
+      connectInFlightRef.current = false;
+      setConnectingWalletKey(null);
     }
   }, []);
 
   const disconnect = useCallback(() => {
     connectionRef.current = null;
+    connectInFlightRef.current = false;
+    setConnectingWalletKey(null);
     setWalletStatus('idle');
     setWalletName(null);
     setAddress(null);
@@ -170,6 +181,7 @@ export function useMidnight() {
   return {
     wallets,
     walletStatus,
+    connectingWalletKey,
     walletName,
     address,
     networkId,

@@ -51,11 +51,14 @@ export function CircuitCall({
   return (
     <section className="card">
       <header className="card-head">
-        <h2>Increment</h2>
+        <div>
+          <span className="section-kicker">Step 02</span>
+          <h2>Prove an increment</h2>
+        </div>
         <span className="badge badge-off mono">{CONTRACT_ADDRESS.slice(0, 10)}…</span>
       </header>
 
-      <form onSubmit={onSubmit}>
+      <form className="increment-form" onSubmit={onSubmit}>
         <label className="field">
           <span>Your secret step</span>
           <input
@@ -70,8 +73,8 @@ export function CircuitCall({
         </label>
 
         <p className="privacy-note">
-          <strong>Proved without revealing your input.</strong> The step stays in this tab — the proof only
-          attests that it is between 1 and {String(MAX_STEP)}.
+          <span className="privacy-icon" aria-hidden="true">✦</span>
+          <span><strong>Proved without revealing your input.</strong> The proof only attests that your step is between 1 and {String(MAX_STEP)}.</span>
         </p>
 
         {validation && <p className="alert alert-error">{validation}</p>}
@@ -117,10 +120,13 @@ export function CircuitCall({
       {callError && <p className="alert alert-error">{callError}</p>}
 
       <div className="ledger">
-        <h3>Public state</h3>
+        <div className="ledger-head">
+          <h3>Public state</h3>
+          <span className="live-indicator"><i aria-hidden="true" /> Live</span>
+        </div>
         {ledgerError && <p className="alert alert-error">{ledgerError}</p>}
         {ledger ? (
-          <dl className="facts">
+          <dl className="stats">
             <div>
               <dt>Round</dt>
               <dd className="mono">{String(ledger.round)}</dd>
