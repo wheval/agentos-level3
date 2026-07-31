@@ -7,21 +7,19 @@
 
 [https://agentos-level2.vercel.app](https://agentos-level2.vercel.app)
 
-This is the verified Level 2 deployment, preserved while Level 3 is prepared. A dedicated
-Level 3 production deployment is still a user action and is not represented as complete.
+The hosted app connects a Midnight wallet to the verified Preview deployment below.
 
 ## Contract Address
 
 | Network | Address |
 |----------|---------|
 | Preview | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` |
-| Preprod | **Incomplete — no verified Preprod address has been supplied** |
+| Preprod | Not deployed |
 
 The Preview contract was deployed in block `205339` by transaction
 `492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70`.
-The previous Preprod attempt was blocked because the faucet was unavailable. This repository
-does not invent an address; the Level 3 Preprod requirement remains incomplete until a
-deployment is verified against the public indexer.
+The deployment targets Preview because the Preprod faucet was unavailable during deployment.
+No unverified Preprod address is claimed.
 
 ## What This Does
 
@@ -153,9 +151,10 @@ The badge directly below the title reports this workflow's `main` branch status.
 
 ## Product Proposal
 
-See [PROPOSAL.md](PROPOSAL.md). It intentionally contains the exact Rise In placeholders so
-the project owner can provide the product, Midnight differentiation, data model, and Mainnet
-feasibility answers in their own words.
+The selected challenge idea is **Private Allowlist Access**: proving that an AI agent belongs
+to an organization's resource allowlist without revealing the agent's identity. The complete
+selective-disclosure design, data model, and Level 6 feasibility plan are in
+[PROPOSAL.md](PROPOSAL.md).
 
 ## Deployment and Verification
 
@@ -173,7 +172,7 @@ npx --yes npm@10.9.2 run verify preview \
   2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
 ```
 
-Expected preserved Preview evidence:
+Expected Preview evidence:
 
 ```text
 Network:  preview
@@ -210,54 +209,16 @@ agentos-level3/
 └── package.json
 ```
 
-## 1-Minute Demo Checklist
+## Demo Video
 
-1. **0:00–0:25 — Full dApp flow:** open the production site, connect Lace or 1AM, enter a
-   masked step, call `increment()`, show proof/submission loading states, then show the
-   transaction result and refreshed public ledger.
-2. **0:25–0:45 — Tests:** show a terminal running `npx --yes npm@10.9.2 test` with all six
-   tests passing, including circuit logic, state transitions, and privacy.
-3. **0:45–1:00 — CI:** open this README on GitHub and show the green CI badge, then open the
-   successful workflow summary.
+[Watch the wallet connection, private circuit call, and public result](https://youtu.be/sLYBi4SMj_U).
 
-The existing Level 2 demo remains available at
-[https://youtu.be/sLYBi4SMj_U](https://youtu.be/sLYBi4SMj_U). A new Level 3 video is still
-required before submission.
+## Build and Deployment Evidence
 
-## Level 3 Final Checklist
-
-| Requirement | Status |
-|-------------|--------|
-| 3+ tests passing | ✓ Six tests pass locally |
-| CI/CD pipeline configured for push to `main` and pull requests | ✓ |
-| CI/CD pipeline passing on `main` | ✓ Verified by GitHub Actions |
-| CI badge directly below README title | ✓ |
-| Contract address in README | ✓ Verified Preview address |
-| Verified Preprod contract address in README | ✗ No verified address supplied |
-| Privacy Model section | ✓ |
-| Privacy Claim section | ✓ |
-| `PROPOSAL.md` with exact placeholder structure | ✓ |
-| `PROPOSAL.md` completed by the project owner | ✗ User action |
-| Production build completes with zero errors | ✓ |
-| Required file structure | ✓ |
-| Dedicated Level 3 live deployment | ✗ User action |
-| New 1-minute Level 3 demo video | ✗ User action |
-| 10+ meaningful Level 3 commits | ✓ |
-
-**Before Rise In submission:** fill in every placeholder in `PROPOSAL.md`, deploy and verify
-the contract on Preprod, update the frontend and address table, deploy the Level 3 frontend,
-record the 1-minute demo, confirm the CI badge is green, and submit only after every mandatory
-row above is complete.
-
-## Preserved Level 2 Evidence
-
-The Level 2 implementation and evidence remain intact:
-
-- Live frontend: [agentos-level2.vercel.app](https://agentos-level2.vercel.app)
-- Demo video: [youtu.be/sLYBi4SMj_U](https://youtu.be/sLYBi4SMj_U)
-- Preview deployment screenshots in [`screenshots/`](screenshots/)
-- Committed compiler output in [`managed/`](managed/)
-- Browser proving artifacts in [`public/zk/counter/`](public/zk/counter/)
+- Passing tests and build: [GitHub Actions CI](https://github.com/wheval/agentos-level3/actions/workflows/ci.yml)
+- Preview deployment screenshots: [`screenshots/`](screenshots/)
+- Committed compiler output: [`managed/`](managed/)
+- Browser proving artifacts: [`public/zk/counter/`](public/zk/counter/)
 
 ### Compile output
 
