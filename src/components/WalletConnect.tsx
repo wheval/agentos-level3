@@ -32,7 +32,17 @@ export function WalletConnect({
 }: Props) {
   const connecting = walletStatus === 'connecting';
   const connected = walletStatus === 'connected';
+  const detecting = walletStatus === 'detecting';
   const noWallet = walletStatus !== 'detecting' && wallets.length === 0;
+  const statusLabel = connected
+    ? 'Connected'
+    : detecting
+      ? 'Detecting'
+      : connecting
+        ? 'Connecting'
+        : walletStatus === 'error'
+          ? 'Needs attention'
+          : 'Not connected';
 
   return (
     <section className="card">
@@ -41,8 +51,8 @@ export function WalletConnect({
           <span className="section-kicker">Step 01</span>
           <h2>Choose your wallet</h2>
         </div>
-        <span className={`badge ${connected ? 'badge-on' : 'badge-off'}`}>
-          {connected ? 'Connected' : 'Not connected'}
+        <span className={`badge ${connected ? 'badge-on' : 'badge-off'}`} role="status" aria-live="polite">
+          {statusLabel}
         </span>
       </header>
 
@@ -78,13 +88,20 @@ export function WalletConnect({
         </>
       ) : (
         <>
-          <p className="muted">
-            {noWallet
-              ? 'No Midnight wallet found in this browser.'
-              : 'Select the wallet you want to use for proving and submitting.'}
-          </p>
+          {detecting ? (
+            <div className="progress progress-inline" role="status">
+              <span className="spinner" aria-hidden="true" />
+              <span>Looking for Lace or 1AM in this browser…</span>
+            </div>
+          ) : (
+            <p className="muted">
+              {noWallet
+                ? 'No Midnight wallet found. Install an extension, enable it for this site, then reload.'
+                : 'Select the wallet you want to use for proving and submitting.'}
+            </p>
+          )}
 
-          {noWallet ? (
+          {detecting ? null : noWallet ? (
             <div className="wallet-list">
               <a className="btn btn-primary" href="https://www.lace.io/" target="_blank" rel="noreferrer noopener">
                 Install Lace
@@ -123,7 +140,7 @@ export function WalletConnect({
         </>
       )}
 
-      {walletError && <p className="alert alert-error">{walletError}</p>}
+      {walletError && <p className="alert alert-error" role="alert">{walletError}</p>}
     </section>
   );
 }
