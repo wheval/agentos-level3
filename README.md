@@ -144,11 +144,18 @@ rather than a plaintext running total), not a frontend one. This repo does not c
 | Requirement | Notes |
 | ----------- | ----- |
 | Node.js v22+ | `node --version` |
-| Lace wallet | Midnight browser extension — needed for the web app |
-| Docker | Only needed for the deploy script's proof server |
+| Lace wallet | Midnight browser extension, holding tNIGHT **registered for DUST generation** — DUST pays transaction fees |
+| Docker | Runs the proof server |
 | Compact toolchain | Installed via the Midnight `compact` version manager, **not** npm |
-| Proof server | `midnightntwrk/proof-server` on port 6300 (deploy only) |
+| Proof server | `midnightntwrk/proof-server` on port 6300 — used by the deploy script, and by Lace when it proves in the browser |
 | Funded testnet wallet | Only needed to deploy, not to build or test |
+
+> **Calling the circuit needs DUST.** Fees on Midnight are paid in DUST, which
+> accrues from NIGHT you already hold rather than being sent to you — a wallet
+> can show a healthy tNIGHT balance and still be unable to submit. If Lace shows
+> `0 / 0 tDUST`, register your tNIGHT for DUST generation in the wallet and give
+> it a few minutes. The app checks this before proving and tells you which of
+> those states you are in.
 
 
 Install the Compact toolchain:
