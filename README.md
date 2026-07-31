@@ -46,8 +46,8 @@ least 1 and at most `max_step`.
 The twist is where the step size lives. It is never sent to the network as a circuit
 argument. It stays on the caller's own machine as a witness, and the zero-knowledge proof
 is what convinces the chain that the rule was followed. Observers watching the ledger see
-the counter move and the running total change — they never see which step any individual
-caller chose.
+the counter move and the running total change. The witness itself never appears in the
+transaction, although an observer can derive the step by subtracting consecutive public totals.
 
 That is the pattern AgentOS is built around: an autonomous agent acts under a policy, the
 policy is enforced cryptographically rather than by trust, and the agent's inputs stay
@@ -136,7 +136,7 @@ rather than a plaintext running total), not a frontend one. This repo does not c
 - **React 18 + Vite 5** — frontend, with WASM and top-level-await plugins
 - **Lace wallet** — Midnight browser extension; does the proving on-device
 - **Node.js** v22+
-- **Docker** — runs the local proof server (deployment only; the browser proves in-wallet)
+- **Docker** — runs the local proof server used by deployment and browser proving
 - **Vitest** — contract test suite
 
 ## Prerequisites
@@ -208,10 +208,10 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-That is all that is needed to run the web app — no Docker and no proof server, because
-proving happens inside the Lace extension. Install
-[Lace](https://www.lace.io/) first, or the app will show an install prompt instead of a
-connect button.
+Install [Lace](https://www.lace.io/) or [1AM](https://1am.xyz/) first, or the app will show
+install prompts instead of wallet connect buttons. To submit a circuit call through Lace,
+also start the local proof server from the **Prerequisites** section; the extension uses it
+while proving in the browser.
 
 To point the app at a different deployment, create a `.env.local`:
 
@@ -404,7 +404,7 @@ That is the primitive the rest of AgentOS is built on.
 
 **<!-- PASTE VIDEO LINK HERE -->**
 
-What the recording shows, in order:
+Keep the recording under two minutes and show, in order:
 
 1. Connecting Lace — the wallet address appears on screen.
 2. Entering a secret step and pressing **Increment counter** — the button switches to
@@ -412,6 +412,21 @@ What the recording shows, in order:
 3. The transaction id and the updated public `round` / `total` after submission.
 4. The step field stays masked and empties itself — the value never appears in the UI, the
    console, or the transaction.
+
+## Level 2 Final Checklist
+
+| Requirement | Status |
+| ----------- | ------ |
+| Lace wallet connect and disconnect working | ✓ |
+| Circuit called from the frontend and proof generated locally | ✓ on Preview |
+| Private input never shown in the UI | ✓ |
+| Contract address in README | ✓ Preview address |
+| Live demo link in README | ✓ |
+| Privacy Claim section in README | ✓ |
+| File structure matches the specification | ✓ |
+| Minimum 8 meaningful commits | ✓ 18+ Level 2 commits |
+| Preprod contract address and live wiring | ✗ Preprod faucet was down; current deployment uses Preview |
+| Demo video link | ✗ Add after recording |
 
 ## Screenshots
 
