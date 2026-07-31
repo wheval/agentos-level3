@@ -15,6 +15,7 @@ import type * as Counter from '../../managed/contract/index.js';
 
 export type WalletStatus = 'idle' | 'detecting' | 'connecting' | 'connected' | 'error';
 export type CallStatus = 'idle' | 'proving' | 'submitting' | 'done' | 'error';
+export type LedgerStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export type CallResult = {
   readonly txId: string;
@@ -39,6 +40,7 @@ export function useMidnight() {
   const [result, setResult] = useState<CallResult | null>(null);
 
   const [ledger, setLedger] = useState<Counter.Ledger | null>(null);
+  const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus>('idle');
   const [ledgerError, setLedgerError] = useState<string | null>(null);
 
   const connectionRef = useRef<ConnectedAPI | null>(null);
@@ -106,6 +108,33 @@ export function useMidnight() {
     setCallStatus('idle');
     setCallError(null);
     setResult(null);
+    setLedger(null);
+    setLedgerStatus('idle');
+    setLedgerError(null);
+  }, []);
+
+  /** Reads public state straight from the indexer — no proof is required. */
+  const refreshLedger = useCallback(async () => {
+    const connected = connectionRef.current;
+    if (!connected) {
+      setLedgerStatus('idle');
+      return;
+    }
+
+    setLedgerError(null);
+    setLedgerStatus('loading');
+    try {
+      const providers = await buildProviders(connected);
+      const nextLedger = await readLedger(providers as never, CONTRACT_ADDRESS);
+      if (!nextLedger) {
+        throw new Error('The contract is not indexed yet. Wait a moment, then retry.');
+      }
+      setLedger(nextLedger);
+      setLedgerStatus('ready');
+    } catch (error) {
+      setLedgerError(describeWalletError(error));
+      setLedgerStatus('error');
+    }
   }, []);
 
   /**
@@ -150,29 +179,12 @@ export function useMidnight() {
 
         void refreshLedger();
       } catch (error) {
-        // The SDK flattens nested failures into the message, so keep the live
-        // object around in the console where its `cause` chain is inspectable.
-        console.error('Circuit call failed:', error);
         setCallError(describeWalletError(error));
         setCallStatus('error');
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [refreshLedger],
   );
-
-  /** Reads public state straight from the indexer — no wallet required. */
-  const refreshLedger = useCallback(async () => {
-    setLedgerError(null);
-    try {
-      const connected = connectionRef.current;
-      if (!connected) return;
-      const providers = await buildProviders(connected);
-      setLedger(await readLedger(providers as never, CONTRACT_ADDRESS));
-    } catch (error) {
-      setLedgerError(error instanceof Error ? error.message : 'Could not read contract state.');
-    }
-  }, []);
 
   useEffect(() => {
     if (walletStatus === 'connected' && !networkMismatch) void refreshLedger();
@@ -197,6 +209,7 @@ export function useMidnight() {
     callIncrement,
 
     ledger,
+    ledgerStatus,
     ledgerError,
     refreshLedger,
   };
