@@ -53,6 +53,34 @@ const isConnectorError = (error: unknown): error is ConnectorError =>
   (error as { type?: unknown }).type === 'DAppConnectorAPIError';
 
 /**
+ * midnight-js reports submission failures as
+ * `new Error(\`Unexpected error submitting ...: ${String(err)}\`, { cause: err })`.
+ * When the underlying failure carries an empty message, `String(err)` collapses
+ * to a bare "Error" and the only usable detail survives on `cause` — so walk it.
+ */
+function unwrap(error: unknown, depth = 0): string | null {
+  if (error == null || depth > 5) return null;
+
+  // Handled by the code table above; recursing back into it keeps the wording
+  // consistent when a connector rejection is nested inside a wrapper Error.
+  if (isConnectorError(error)) return describeWalletError(error);
+
+  if (typeof error === 'string') return error.trim() || null;
+
+  if (error instanceof Error) {
+    const nested = unwrap(error.cause, depth + 1);
+    if (nested) return nested;
+
+    const own = error.message.trim();
+    if (own) return own;
+
+    return error.name && error.name !== 'Error' ? error.name : null;
+  }
+
+  return null;
+}
+
+/**
  * The connector rejects with a plain object rather than an Error, so the usual
  * `error.message` is empty. Translate the documented codes into something a
  * user can act on.
@@ -73,8 +101,36 @@ export function describeWalletError(error: unknown): string {
     }
   }
 
-  if (error instanceof Error) return error.message;
+  const detail = unwrap(error);
+  if (detail) return detail;
+
   return 'Something went wrong talking to the wallet.';
+}
+
+/**
+ * Fees on Midnight are paid in DUST, which accrues from held NIGHT rather than
+ * being sent to you. A wallet can therefore hold tNIGHT and still be unable to
+ * submit. That failure otherwise surfaces late — after a proof has already been
+ * generated — as an error with no message, so check it up front.
+ */
+export async function assertCanPayFees(connected: ConnectedAPI, networkId: string): Promise<void> {
+  let cap: bigint;
+  let balance: bigint;
+
+  try {
+    ({ cap, balance } = await connected.getDustBalance());
+  } catch {
+    // Older wallets may not expose DUST; let the normal path report failures.
+    return;
+  }
+
+  if (balance > 0n) return;
+
+  throw new Error(
+    cap > 0n
+      ? `This wallet holds tNIGHT but has no DUST yet on ${networkId}. DUST pays transaction fees and accrues over a few minutes — wait, then try again.`
+      : `This wallet has no DUST on ${networkId}, so it cannot pay transaction fees. Fund this address from the ${networkId} faucet, then wait a few minutes for DUST to accrue.`,
+  );
 }
 
 export type { ConnectedAPI };

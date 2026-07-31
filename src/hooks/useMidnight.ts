@@ -3,7 +3,13 @@ import { findDeployedContract } from '@midnight-ntwrk/midnight-js/contracts';
 
 import { CONTRACT_ADDRESS, EXPECTED_NETWORK_ID, PRIVATE_STATE_ID } from '../lib/config';
 import { buildProviders, compiledContract, readLedger } from '../lib/providers';
-import { describeWalletError, waitForWallets, type ConnectedAPI, type DiscoveredWallet } from '../lib/wallet';
+import {
+  assertCanPayFees,
+  describeWalletError,
+  waitForWallets,
+  type ConnectedAPI,
+  type DiscoveredWallet,
+} from '../lib/wallet';
 import { initialPrivateState } from '../../contracts/witnesses.js';
 import type * as Counter from '../../managed/contract/index.js';
 
@@ -110,6 +116,10 @@ export function useMidnight() {
       setCallStatus('proving');
 
       try {
+        // Proving is expensive, so refuse early rather than discovering the
+        // wallet cannot cover fees only after the proof exists.
+        await assertCanPayFees(connected, EXPECTED_NETWORK_ID);
+
         const providers = await buildProviders(connected);
         const contract = await findDeployedContract(providers as never, {
           compiledContract,
@@ -129,6 +139,9 @@ export function useMidnight() {
 
         void refreshLedger();
       } catch (error) {
+        // The SDK flattens nested failures into the message, so keep the live
+        // object around in the console where its `cause` chain is inspectable.
+        console.error('Circuit call failed:', error);
         setCallError(describeWalletError(error));
         setCallStatus('error');
       }
