@@ -6,6 +6,7 @@ grep -q 'export ledger round: Uint<64>;' contracts/counter.compact
 grep -q 'export ledger total: Uint<64>;' contracts/counter.compact
 grep -q 'export sealed ledger max_step: Uint<64>;' contracts/counter.compact
 grep -q 'witness secret_step(): Uint<64>;' contracts/counter.compact
+grep -q 'export circuit increment(): \[\]' contracts/counter.compact
 grep -q 'disclose(' contracts/counter.compact
 
 # Compiler output agrees with the source.
@@ -16,9 +17,18 @@ grep -q '"name": "total"' managed/compiler/contract-info.json
 grep -q '"name": "max_step"' managed/compiler/contract-info.json
 
 # Proving and verifier keys exist.
-test -f managed/keys/increment.prover
-test -f managed/keys/increment.verifier
-test -f managed/zkir/increment.bzkir
+test -s managed/keys/increment.prover
+test -s managed/keys/increment.verifier
+test -s managed/zkir/increment.bzkir
+
+# The browser serves byte-for-byte copies of the compiler output.
+cmp managed/keys/increment.prover public/zk/counter/keys/increment.prover
+cmp managed/keys/increment.verifier public/zk/counter/keys/increment.verifier
+cmp managed/zkir/increment.bzkir public/zk/counter/zkir/increment.bzkir
+
+# Generated bindings expose no public arguments or return values for increment.
+grep -Fq 'increment(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;' \
+  managed/contract/index.d.ts
 
 # The private witness must never appear as a public ledger field.
 node --input-type=module -e "
