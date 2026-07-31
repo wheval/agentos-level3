@@ -126,10 +126,26 @@ export async function assertCanPayFees(connected: ConnectedAPI, networkId: strin
 
   if (balance > 0n) return;
 
+  // A zero DUST balance has two very different causes that are indistinguishable
+  // from the DUST figures alone, so check for NIGHT before advising a fix.
+  let holdsNight = false;
+  try {
+    const unshielded = await connected.getUnshieldedBalances();
+    holdsNight = Object.values(unshielded).some((amount) => amount > 0n);
+  } catch {
+    holdsNight = false;
+  }
+
+  if (cap > 0n) {
+    throw new Error(
+      `This wallet's NIGHT is registered but no DUST has accrued yet on ${networkId}. It builds up over a few minutes — wait, then try again.`,
+    );
+  }
+
   throw new Error(
-    cap > 0n
-      ? `This wallet holds tNIGHT but has no DUST yet on ${networkId}. DUST pays transaction fees and accrues over a few minutes — wait, then try again.`
-      : `This wallet has no DUST on ${networkId}, so it cannot pay transaction fees. Fund this address from the ${networkId} faucet, then wait a few minutes for DUST to accrue.`,
+    holdsNight
+      ? `This wallet holds NIGHT, but none of it is registered for DUST generation, so it cannot pay fees on ${networkId}. Register it for DUST generation in your wallet, wait a few minutes, then try again.`
+      : `This wallet has no NIGHT on ${networkId}, so it cannot generate the DUST that pays fees. Fund it from the ${networkId} faucet, then register it for DUST generation.`,
   );
 }
 
