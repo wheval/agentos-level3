@@ -10,7 +10,7 @@ stands on its own. Level 1 is submitted separately from
 
 ## Live Demo
 
-**<!-- PASTE VERCEL URL HERE -->** _(deploy with `vercel --prod`, then paste the URL here)_
+[https://agentos-level2.vercel.app](https://agentos-level2.vercel.app)
 
 The web app connects a Midnight wallet, takes a secret step value, generates the
 zero-knowledge proof **in your wallet on your own machine**, and submits the resulting
@@ -303,7 +303,7 @@ vercel link          # first time only
 vercel --prod
 ```
 
-Then paste the resulting URL into the **Live Demo** section above.
+Production is deployed at [agentos-level2.vercel.app](https://agentos-level2.vercel.app).
 
 The config matters in one specific way: the SPA rewrite deliberately excludes `/zk/*` and
 `/assets/*`.
