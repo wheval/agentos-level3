@@ -11,15 +11,24 @@ The hosted app connects a Midnight wallet to the verified Preview deployment bel
 
 ## Contract Address
 
-| Network | Address |
-|----------|---------|
-| Preview | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` |
-| Preprod | Not deployed |
+| Network | Address | Status |
+|---------|---------|--------|
+| **Preview** (`preview`) | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` | Deployed and verified on-chain |
+| Preprod (`preprod`) | — | Not deployed |
 
-The Preview contract was deployed in block `205339` by transaction
-`492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70`.
-The deployment targets Preview because the Preprod faucet was unavailable during deployment.
-No unverified Preprod address is claimed.
+The **Preview** deployment is live and independently verifiable. It was created by transaction
+`492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70` in block `205339`.
+
+Verify it against the public Midnight indexer. No wallet, key, or local toolchain is required:
+
+```bash
+npx --yes npm@10.9.2 run verify preview \
+  2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
+```
+
+The deployment targets Preview because the Preprod faucet did not dispense tNIGHT, and the
+contract cannot be deployed without a funded wallet. No unverified Preprod address is claimed.
+Every row above carries an explicit network label so the deployed target is unambiguous.
 
 ## What This Does
 
@@ -175,8 +184,7 @@ npx --yes npm@10.9.2 run deploy -- --network preprod
 Verify an address before documenting it:
 
 ```bash
-npx --yes npm@10.9.2 run verify preview \
-  2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
+npx --yes npm@10.9.2 run verify <network> <address> [deploy-tx-hash]
 ```
 
 Expected Preview evidence:
@@ -184,12 +192,16 @@ Expected Preview evidence:
 ```text
 Network:  preview
 Address:  2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
-Tx:       492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70
-Block:    205339
-Type:     ContractDeploy
+Deploy:   ContractDeploy in block 205339 (tx 492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70)
+Latest:   ContractCall in block 207377 (tx fe388f20ec5cc26472204dd2b184a0048d4ecd62ed450b71621a7bcc82f528fc)
 
 Verified on-chain.
 ```
+
+The `Deploy` line is fixed. The `Latest` line reports the most recent action on the contract, so
+its block and transaction advance each time someone calls `increment()`. The indexer resolves an
+address to its latest action only, which is why deployment is confirmed from the deploy
+transaction instead of from that lookup.
 
 ## Project Structure
 
