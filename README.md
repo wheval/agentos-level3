@@ -11,15 +11,35 @@ The hosted app connects a Midnight wallet to the verified Preview deployment bel
 
 ## Contract Address
 
-| Network | Address |
-|----------|---------|
-| Preview | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` |
-| Preprod | Not deployed |
+| Network | Address | Status |
+|---------|---------|--------|
+| **Preprod** (`preprod`) | `ee4262f0e8560a607837b4a8bcb926feb9ad443b291e46c3c5d5a98b95403f8c` | Deployed and verified on-chain |
+| **Preview** (`preview`) | `2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e` | Deployed and verified on-chain |
 
-The Preview contract was deployed in block `205339` by transaction
-`492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70`.
-The deployment targets Preview because the Preprod faucet was unavailable during deployment.
-No unverified Preprod address is claimed.
+Both deployments are live and independently verifiable:
+
+- **Preprod** was created by transaction
+  `b78bcd87c82c3ce99498470f5523499c8d04d170929764fcb2f8ee17c9333402` in block `1985912`.
+- **Preview** was created by transaction
+  `492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70` in block `205339`.
+
+Verify either against the public Midnight indexer. No wallet, key, or local toolchain is
+required beyond `curl`:
+
+```bash
+./scripts/verify.sh preprod \
+  ee4262f0e8560a607837b4a8bcb926feb9ad443b291e46c3c5d5a98b95403f8c
+
+./scripts/verify.sh preview \
+  2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
+```
+
+Each prints the deploying transaction and block, and exits non-zero if the address does not
+resolve to a `ContractDeploy` on that network. Every row above carries an explicit network
+label so the deployed target is unambiguous.
+
+The hosted demo points at the Preview deployment. To run the UI against Preprod, set
+`VITE_CONTRACT_ADDRESS` to the Preprod address above and `VITE_NETWORK_ID=preprod`.
 
 ## What This Does
 
@@ -76,7 +96,7 @@ public-state delta. Hiding the delta would require a commitment or shielded bala
 
 ## Tech Stack
 
-- Midnight Preview testnet and public indexer
+- Midnight Preprod and Preview testnets with the public indexer
 - Compact language `0.23`, compiler `0.31.1`, runtime `0.16.0`
 - Midnight.js `4.1.x` and DApp Connector API `4.0.1`
 - React 18, TypeScript, and Vite 5
@@ -93,7 +113,7 @@ public-state delta. Hiding the delta would require a commitment or shielded bala
 | npm 10.9.2 | Invoked through `npx --yes npm@10.9.2` |
 | Compact toolchain 0.31.1 | Installed with the official Compact version manager |
 | Lace or 1AM | Required for the browser transaction flow |
-| Funded Preview wallet | NIGHT must be registered and allowed time to accrue DUST |
+| Funded testnet wallet | NIGHT must be registered and allowed time to accrue DUST |
 | Docker proof server | Required for command-line deployment; browser calls use the wallet proving provider |
 
 Install the Compact toolchain:
@@ -122,8 +142,13 @@ VITE_CONTRACT_ADDRESS=<verified-contract-address>
 VITE_NETWORK_ID=preview
 ```
 
-The default remains the verified Preview deployment. Do not set `VITE_NETWORK_ID=preprod`
-until `VITE_CONTRACT_ADDRESS` is a real Preprod address.
+The default remains the verified Preview deployment. To target Preprod instead, set both
+values together so the address and network always match:
+
+```bash
+VITE_CONTRACT_ADDRESS=ee4262f0e8560a607837b4a8bcb926feb9ad443b291e46c3c5d5a98b95403f8c
+VITE_NETWORK_ID=preprod
+```
 
 ## Run Tests
 
@@ -175,8 +200,18 @@ npx --yes npm@10.9.2 run deploy -- --network preprod
 Verify an address before documenting it:
 
 ```bash
-npx --yes npm@10.9.2 run verify preview \
-  2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
+./scripts/verify.sh <network> <address> [deploy-tx-hash]
+```
+
+Actual Preprod evidence, reproducible by anyone with `curl`:
+
+```text
+$ ./scripts/verify.sh preprod ee4262f0e8560a607837b4a8bcb926feb9ad443b291e46c3c5d5a98b95403f8c
+Network:  preprod
+Address:  ee4262f0e8560a607837b4a8bcb926feb9ad443b291e46c3c5d5a98b95403f8c
+Latest:   ContractDeploy in block 1985912 (tx b78bcd87c82c3ce99498470f5523499c8d04d170929764fcb2f8ee17c9333402)
+
+Verified on-chain.
 ```
 
 Expected Preview evidence:
@@ -184,12 +219,16 @@ Expected Preview evidence:
 ```text
 Network:  preview
 Address:  2c5b229e9092c0726cafcc7b856ef2f0ae301e25b3eb97b63881ed715fb2fe4e
-Tx:       492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70
-Block:    205339
-Type:     ContractDeploy
+Deploy:   ContractDeploy in block 205339 (tx 492bc5bf9ff75df1d94c4977f52b8b1d9030180ffc7a812c1d4817ecb659dd70)
+Latest:   ContractCall in block 207377 (tx fe388f20ec5cc26472204dd2b184a0048d4ecd62ed450b71621a7bcc82f528fc)
 
 Verified on-chain.
 ```
+
+The `Deploy` line is fixed. The `Latest` line reports the most recent action on the contract, so
+its block and transaction advance each time someone calls `increment()`. The indexer resolves an
+address to its latest action only, which is why deployment is confirmed from the deploy
+transaction instead of from that lookup.
 
 ## Project Structure
 
