@@ -27,7 +27,7 @@ else
   DEPLOY_TX=''
 fi
 
-INDEXER="https://indexer.${NETWORK}.midnight.network/api/v3/graphql"
+INDEXER="https://indexer.${NETWORK}.midnight.network/api/v4/graphql"
 
 gql() {
   curl -sS -X POST "$INDEXER" -H 'Content-Type: application/json' -d "$1"

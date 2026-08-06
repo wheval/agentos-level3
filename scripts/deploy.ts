@@ -68,14 +68,14 @@ import { type CounterPrivateState, initialPrivateState, witnesses } from '../con
 
 const NETWORKS = {
   preview: {
-    indexer: 'https://indexer.preview.midnight.network/api/v3/graphql',
-    indexerWS: 'wss://indexer.preview.midnight.network/api/v3/graphql/ws',
+    indexer: 'https://indexer.preview.midnight.network/api/v4/graphql',
+    indexerWS: 'wss://indexer.preview.midnight.network/api/v4/graphql/ws',
     node: 'https://rpc.preview.midnight.network',
     faucet: 'https://faucet.preview.midnight.network/',
   },
   preprod: {
-    indexer: 'https://indexer.preprod.midnight.network/api/v3/graphql',
-    indexerWS: 'wss://indexer.preprod.midnight.network/api/v3/graphql/ws',
+    indexer: 'https://indexer.preprod.midnight.network/api/v4/graphql',
+    indexerWS: 'wss://indexer.preprod.midnight.network/api/v4/graphql/ws',
     node: 'https://rpc.preprod.midnight.network',
     faucet: 'https://faucet.preprod.midnight.network/',
   },
@@ -98,6 +98,31 @@ type DustBatchUpdatesConfig = {
 };
 
 const PROOF_SERVER = process.env.PROOF_SERVER ?? 'http://127.0.0.1:6300';
+
+/** How long sync may report identical progress before it is treated as a dropped subscription. */
+const SYNC_STALL_TIMEOUT_MS = 5 * 60_000;
+
+/** Retries an operation that can fail from transient public-infrastructure errors. */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  { attempts, delayMs, label }: { attempts: number; delayMs: number; label: string },
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      console.error(
+        `${label} attempt ${attempt}/${attempts} failed, retrying in ${delayMs / 1000}s:`,
+        inspect(error, { depth: 4 }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
 const PRIVATE_STATE_ID = 'counterPrivateState' as const;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -208,17 +233,21 @@ async function buildWallet(network: NetworkName, seed: string) {
     shielded: (c) => ShieldedWallet(c).startWithSecretKeys(shieldedSecretKeys),
     unshielded: (c) => UnshieldedWallet(c).startWithPublicKey(PublicKey.fromKeyStore(unshieldedKeystore)),
     dust: (c) => {
-      // The dust sync stream batches via `groupedWithin(size, timeout)` followed by
+      // The dust sync stream batches via `groupedWithin(size, timeout)` then
       // `Schedule.spaced(spacing)`. Defaults are size=10, timeout=1ms, spacing=4ms, so
-      // batches flush near-empty and each pays a fixed delay + round trip (~33 events/s
-      // measured). A fresh wallet on preprod has ~1.4M dust events => 11+ hours.
-      // Batching far more aggressively amortises that overhead down to minutes.
+      // batches flush near-empty and each pays a fixed delay plus a round trip
+      // (~1.7k events/min measured, i.e. 12+ hours for a fresh preprod wallet).
+      //
+      // Batch far more per round trip, but keep spacing non-zero: at 0 the SDK skips
+      // `Stream.schedule` entirely, which starves the event loop so the indexer
+      // WebSocket stops servicing keepalives and the subscription dies silently
+      // part-way through the scan.
       //
       // `batchUpdates` is read at runtime (v1/Sync.js `makeDefaultSyncService`) but is
       // missing from the exported `DefaultDustConfiguration` alias, hence the widened type.
       const dustConfig: typeof c & { batchUpdates?: DustBatchUpdatesConfig } = {
         ...c,
-        batchUpdates: { size: 8_192, timeout: 250, spacing: 0 },
+        batchUpdates: { size: 2_048, timeout: 100, spacing: 1 },
       };
       return DustWallet(dustConfig).startWithSecretKey(
         dustSecretKey,
@@ -273,6 +302,9 @@ function formatProgress(state: FacadeState): string {
  */
 function reportSyncProgress(wallet: WalletFacade) {
   const started = Date.now();
+  let lastSignature = '';
+  let lastChangedAt = Date.now();
+
   return wallet
     .state()
     .pipe(Rx.throttleTime(30_000, undefined, { leading: true, trailing: true }))
@@ -280,9 +312,24 @@ function reportSyncProgress(wallet: WalletFacade) {
       next: (state) => {
         try {
           const mins = Math.round((Date.now() - started) / 60_000);
+          const signature = formatProgress(state);
           console.log(
-            `  [${mins}m] ${formatProgress(state)}  night=${nightBalance(state)} dust=${state.dust.balance(new Date())}`,
+            `  [${mins}m] ${signature}  night=${nightBalance(state)} dust=${state.dust.balance(new Date())}`,
           );
+
+          // A dropped indexer subscription leaves the combined state stream emitting
+          // unchanged values, so a dead sync looks identical to a slow one. Compare
+          // consecutive applied indices to tell them apart instead of waiting forever.
+          if (signature !== lastSignature) {
+            lastSignature = signature;
+            lastChangedAt = Date.now();
+          } else if (Date.now() - lastChangedAt > SYNC_STALL_TIMEOUT_MS) {
+            console.error(
+              `SYNC STALLED: no progress for ${Math.round(SYNC_STALL_TIMEOUT_MS / 60_000)}m. ` +
+                'The indexer subscription has most likely dropped. Re-run the deploy.',
+            );
+            process.exit(2);
+          }
         } catch {
           /* progress reporting is best-effort */
         }
@@ -385,11 +432,18 @@ async function main() {
     };
 
     console.log('Deploying contract (proving may take a minute)...');
-    const deployed = await deployContract(providers as any, {
-      compiledContract,
-      privateStateId: PRIVATE_STATE_ID,
-      initialPrivateState: initialPrivateState(SECRET_STEP),
-    });
+    // Syncing a fresh wallet costs ~50 minutes on preprod, and the public indexer
+    // intermittently returns transient server errors mid-proof. Retry in-process so a
+    // blip does not discard an otherwise ready wallet.
+    const deployed = await withRetry(
+      () =>
+        deployContract(providers as any, {
+          compiledContract,
+          privateStateId: PRIVATE_STATE_ID,
+          initialPrivateState: initialPrivateState(SECRET_STEP),
+        }),
+      { attempts: 5, delayMs: 20_000, label: 'deploy' },
+    );
 
     const contractAddress = deployed.deployTxData.public.contractAddress;
     console.log('\n==============================================');
