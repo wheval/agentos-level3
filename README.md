@@ -181,12 +181,14 @@ The badge directly below the title reports this workflow's `main` branch status.
 
 ## Product Proposal
 
-**AgentOS** is a model-agnostic private control plane that gives enterprise AI agents scoped
-authority, secure secrets, policy enforcement, and verifiable audit evidence. It starts with a
-Credential and Payment Vault that gives agents short-lived, policy-bound capabilities instead
-of raw keys, then extends the same controls to engineering, HR, cloud, SaaS, and governed
-agent-to-agent handoffs. The full product, selective-disclosure data model, and Level 6 roadmap
-are in [PROPOSAL.md](PROPOSAL.md).
+**AgentOS** is a model-agnostic private control plane for the autonomous AI agents that
+individual developers and indie builders run themselves. It gives every agent a private
+identity, scoped permissions, private memory, and a built-in policy engine, and ships as a full
+web app — dashboard, agent management, policy builder, vault, connectors, and templates. It
+starts with a Credential and Payment Vault that issues short-lived, policy-bound capabilities
+instead of raw keys, so an agent can spend money or call APIs without leaking budgets, secrets,
+or activity. The full product, selective-disclosure data model, and Level 6 roadmap are in
+[PROPOSAL.md](PROPOSAL.md).
 
 ## Deployment and Verification
 
